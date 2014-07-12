@@ -7,14 +7,42 @@ class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): p
 
 class Socks5Server(SocketServer.StreamRequestHandler):
 
+    def decript_data(self, sock):
+        response = sock.recv(4096)
+        encript_data = []
+
+        for data in response:
+            data = chr(ord(data) ^ 0x12)
+            encript_data.append(data)
+
+        return "".join(encript_data)
+
+
+    def encript_data(self, sock):
+        response = sock.recv(4096)
+        print "data before encript\n", response
+        decript_data = []
+
+        for data in response:
+            data = chr(ord(data) ^ 0x12)
+            decript_data.append(data)
+
+        return "".join(decript_data)
+
+
     def handle_tcp(self, sock, remote):
         fdset = [sock, remote]
         while True:
             r, w, e = select.select(fdset, [], [])
             if sock in r:
-                if remote.send(sock.recv(4096)) <= 0: break
+                data = self.decript_data(sock)
+                print "get decript_data\n", data
+                #if remote.send(sock.recv(4096)) <= 0: break
+                if remote.send(data) <= 0: break
             if remote in r:
-                if sock.send(remote.recv(4096)) <= 0: break
+                data = self.encript_data(remote)
+                print "before send, encript data\n", data
+                if sock.send(data) <= 0: break
 
     def handle(self):
         try:
