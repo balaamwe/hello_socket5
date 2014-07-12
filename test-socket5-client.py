@@ -14,7 +14,7 @@ s = socks.socksocket()
 s.setproxy(socks.PROXY_TYPE_SOCKS5, "106.187.50.89", 1080)
 # s.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080, rdns=True)
 s.connect((HOST, PORT))
-# s.settimeout(0)
+s.settimeout(0)
 
 def decript_data(response):
     encript_data = []
@@ -43,39 +43,22 @@ http_connect_message = "GET " + LOCATION + " HTTP/1.1\r\nHost: " + HOST +"\r\n\r
 s.sendall(encript_data(http_connect_message))
 
 
-# TODO 用HTTP协议的话，content-length来判断内容长度
-
 #Now receive data
-content_length = None
-
-fp = s.makefile('rb', 0)
-
-# Initialize with Simple-Response defaults
-line = fp.readline()
-print "reply:", repr(line)
-if not line:
-    # Presumably, the server closed the connection before
-    # sending a valid response.
-    raise Exception("opps")
-try:
-    [version, status, reason] = line.split(None, 2)
-except ValueError:
+response = []
+# FIXME 这里需要content-length配合
+while True:
     try:
-        [version, status] = line.split(None, 1)
-        reason = ""
-    except ValueError:
-        # empty version will cause next test to fail and status
-        # will be treated as 0.9 response.
-        version = ""
+        data = s.recv(4096)
+    except socket.error:
+        continue
 
-# while True:
-#     try:
-#         data = s.recv(4096)
-#         print "*******get encript response\n", data
-#         print "*******get response for http header\n", decript_data(data)
-#     except socket.error:
-#         continue
-#     if not data:
-#         break
+    if not data:
+        break
+    response.append(data)
+
+response = "".join(response)
+# response = "".join(s.recv(1024))
+print "*******get encript response\n", response
+print "*******get response for http header\n", decript_data(response)
 
 s.close()
